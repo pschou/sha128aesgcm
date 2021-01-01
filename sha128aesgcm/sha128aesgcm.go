@@ -1,8 +1,12 @@
-package salt256
+package sha128aesgcm
+
+//pbeWithSHAAnd128BitAES-GCM
 
 import (
-	"crypto/sha256"
-	"errors"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/sha1"
+	//"errors"
 )
 
 /* Basic example of Salt256 operation:
@@ -21,55 +25,46 @@ fmt.Println("output2:", output2)
 // output2: [116 104 105 115 32 105 115 32 109 121 32 109 101 115 115 97 103 101 32 116 104 105 115 32 105 115 32 109 121 32 109 101 115 115 97 103 101 116 104 105 115 32 105 115 32 109 121 32 109 101 115 115 97 103 101 116 104 105 115 32 105 115 32 109 121 32 109 101 115 115 97 103 101]
 */
 
-func zeroing(buf []byte) {
-	for i := 0; i < len(buf); i++ {
-		buf[i] = 0
-	}
-}
-func zeroing32(buf [32]byte) {
+func zeroing20(buf [20]byte) {
 	for i := 0; i < len(buf); i++ {
 		buf[i] = 0
 	}
 }
 
-func Apply(salt []byte, block []byte, passwd []byte) (output []byte, err error) {
-	block_s := len(block)
-	if block_s > 32*255*256 {
-		return nil, errors.New("Algorithm not built for large data sets")
+func Decrypt(nonce []byte, blob []byte, passwd []byte) (output []byte, err error) {
+	h := sha1.Sum(passwd)
+	defer zeroing20(h)
+
+	block, err := aes.NewCipher(h[0:16])
+	if err != nil {
+		return nil, err
 	}
-	salt_s := len(salt)
-	passwd_s := len(passwd)
-	saltpasswd_s := salt_s + passwd_s
-	counter_s := 2
 
-	seed := make([]byte, saltpasswd_s+4+counter_s)
-	defer zeroing(seed)
-
-	copy(seed[0:salt_s], salt)
-	copy(seed[salt_s:saltpasswd_s], passwd)
-	seed[saltpasswd_s] = byte((block_s >> 24) & 255)
-	seed[saltpasswd_s+1] = byte((block_s >> 16) & 255)
-	seed[saltpasswd_s+2] = byte((block_s >> 8) & 255)
-	seed[saltpasswd_s+3] = byte(block_s & 255)
-
-	output = make([]byte, block_s)
-	sum := [32]byte{0}
-	defer zeroing32(sum)
-
-	for i := 0; i <= block_s/32; i++ {
-		seed[saltpasswd_s+4] = byte(i >> 8)
-		seed[saltpasswd_s+5] = byte(i & 255)
-
-		sum = sha256.Sum256(seed)
-
-		offset := i * 32
-		stop := 32
-		if offset+stop > block_s {
-			stop = block_s - offset
-		}
-		for j := 0; j < stop; j++ {
-			output[offset+j] = block[offset+j] ^ sum[j]
-		}
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
 	}
+
+	output, err = aesgcm.Open(nil, nonce, blob, nil)
+	if err != nil {
+		return nil, err
+	}
+	return
+}
+func Encrypt(nonce []byte, blob []byte, passwd []byte) (output []byte, err error) {
+	h := sha1.Sum(passwd)
+	defer zeroing20(h)
+
+	block, err := aes.NewCipher(h[0:16])
+	if err != nil {
+		return nil, err
+	}
+
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	output = aesgcm.Seal(nil, nonce, blob, nil)
 	return
 }

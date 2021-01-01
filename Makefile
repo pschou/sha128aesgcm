@@ -1,4 +1,4 @@
-PROG_NAME := "salt256pem"
+PROG_NAME := "secure-pem"
 VERSION := "0.1"
 
 

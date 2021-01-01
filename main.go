@@ -2,11 +2,12 @@ package main
 
 import (
 	//"crypto/x509"
-	"./salt256"
+	"./sha128aesgcm"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -31,21 +32,26 @@ func main() {
 		log.Fatal("Unable to find PEM section")
 	}
 	for {
-		if strings.HasPrefix(block.Type, "SALT256 ") {
-			block.Type = block.Type[8:]
-			salt, err := base64.StdEncoding.DecodeString(block.Headers["Salt"])
+		if strings.HasPrefix(block.Type, "128-AES-GCM ENCRYPTED ") {
+			block.Type = block.Type[22:]
+			nonce, err := base64.StdEncoding.DecodeString(block.Headers["nonce"])
 			if err != nil {
-				log.Fatal("Unable to parse salt value", err)
+				log.Fatal("Unable to parse nonce value", err)
 			}
-			delete(block.Headers, "Salt")
-			block.Bytes, _ = salt256.Apply([]byte(salt), block.Bytes, passwd)
+			delete(block.Headers, "nonce")
+			block.Bytes, _ = sha128aesgcm.Decrypt([]byte(nonce), block.Bytes, passwd)
 			pem.Encode(os.Stdout, block)
 		} else {
-			block.Type = "SALT256 " + block.Type
-			salt := make([]byte, 15)
-			rand.Read(salt)
-			block.Headers["Salt"] = base64.StdEncoding.EncodeToString(salt)
-			block.Bytes, _ = salt256.Apply(salt, block.Bytes, passwd)
+			block.Type = "128-AES-GCM ENCRYPTED " + block.Type
+
+			// Never use more than 2^32 random nonces with a given key because of the risk of a repeat.
+			nonce := make([]byte, 12)
+			if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+				panic(err.Error())
+			}
+
+			block.Headers["nonce"] = base64.StdEncoding.EncodeToString(nonce)
+			block.Bytes, _ = sha128aesgcm.Encrypt(nonce, block.Bytes, passwd)
 			pem.Encode(os.Stdout, block)
 		}
 		block, rest = pem.Decode(rest)
@@ -53,13 +59,4 @@ func main() {
 			break
 		}
 	}
-
-	//if block == nil || block.Type != "PUBLIC KEY" {
-	//	log.Fatal("failed to decode PEM block containing public key")
-	//}
-
-	//pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
 }
