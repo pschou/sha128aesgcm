@@ -25,7 +25,7 @@ PR4vFuvo593qTBM9emBQ4sN1waDgODleqLdIqpnaun72RnIRiaVzikJOO152/DJE
 ...
 ```
 
-and to reverse the hash, apply use the same passphrase,
+and to reverse, use the same passphrase,
 ```
 $ secure-pem encoded.pem test
 -----BEGIN RSA PRIVATE KEY-----
