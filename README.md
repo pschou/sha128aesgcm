@@ -1,23 +1,27 @@
-# Proposed pbeWithSHAAnd128BitAES-GCM method for securing certificates
+# Proposed AES-128-GCM method for securing certificates
 The GoLANG function operates on any arbitrary binary block and can be incorporated into your application so as to enable 128BitAES-GCM encoding with a passphrase.  The intended usage is for key storage, backups, and use in real time applications.
 
 This function would layer in between the PEM decode and the DER/BER parse.
 
 Both the GoLANG function and command line utility are provided for ease of use.
 
-# Command line utility
-Secure your PEM encoded files with a pbeWithSHAAnd128BitAES-GCM cipher; for storage, transferring, or usage
+This encoding scheme should become a good option for encoding of p12 certificates, ie: pbeWithSHAAnd128BitAES-GCM.
 
-# Basic usage
+# Your own app
+The included example.go shows how to include this into your own library.
+
+# Command line utility
+Secure your PEM encoded files for storage, transferring, or usage.
+
 ```
 $ secure-pem orig.pem test > encoded.pem
 $ head encoded.pem
------BEGIN 128-AES-GCM ENCRYPTED RSA PRIVATE KEY-----
-nonce: RKN6QyJZvjdnWF5m
+-----BEGIN RSA PRIVATE KEY-----
+Proc-Type: 4,ENCRYPTED
+DEK-Info: AES-128-GCM,4B013446431C9A10DD2DDF06
 
-BTG1uKDb9jJqFiVl1FI9/HQQMPclS9k/t4DP7794f5YTbOTugfn6ZQg5tqrCZXW1
-NW1BFjq1kikZIQldF4xjvRZzZwEFnvk3fmxKXxaqaG4V/Dwb2UdD5pChzQwNlSxO
-yk3epgCOb0tV7jgBcq9puKxK/tBn3e18H6cmHpvN0GJGhwSJtVoclJnD2jbWjcxI
+7unNI7DHqFAGkOo5jA3ygMSZoM0wPNjUeu6eFxH1nKpnFR3Se5acaax2/U2kaxMY
+PR4vFuvo593qTBM9emBQ4sN1waDgODleqLdIqpnaun72RnIRiaVzikJOO152/DJE
 ...
 ```
 
